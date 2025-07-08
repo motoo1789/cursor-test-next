@@ -1,0 +1,1095 @@
+openapi: 3.0.3
+info:
+  title: Tech Article Publishing Site API
+  description: 技術記事公開サイトのAPI仕様書
+  version: 1.0.0
+  contact:
+    name: Tech Article API Support
+  license:
+    name: MIT
+
+servers:
+  - url: https://api.tech-articles.com/v1
+    description: 本番環境
+  - url: http://localhost:3000/api/v1
+    description: 開発環境
+
+paths:
+  # 認証関連
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: GitHub認証でログイン
+      description: GitHubアカウントを使用してログインします
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+                  description: GitHubの認証コード
+      responses:
+        '200':
+          description: ログイン成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: 認証に失敗
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: ログアウト
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: ログアウト成功
+        '401':
+          description: 認証が必要
+
+  /auth/user:
+    get:
+      tags:
+        - Authentication
+      summary: ログイン中のユーザー情報取得
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: ユーザー情報
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: 認証が必要
+
+  # 記事関連（公開API）
+  /articles:
+    get:
+      tags:
+        - Articles
+      summary: 記事一覧取得
+      description: 公開されている記事の一覧を取得します
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+        - name: tags
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: false
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [publishedAt, like, views]
+            default: publishedAt
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: 記事一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  articles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ArticleSummary'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /articles/{id}:
+    get:
+      tags:
+        - Articles
+      summary: 記事詳細取得
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 記事詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '404':
+          description: 記事が見つからない
+
+  /articles/search:
+    get:
+      tags:
+        - Articles
+      summary: 記事検索
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 検索キーワード
+        - name: tags
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: author
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: 検索結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  articles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ArticleSummary'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  searchMeta:
+                    type: object
+                    properties:
+                      totalResults:
+                        type: integer
+                      searchTime:
+                        type: number
+                      query:
+                        type: string
+
+  /articles/{id}/like:
+    post:
+      tags:
+        - Articles
+      summary: 記事にいいね
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: いいね成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  likeCount:
+                    type: integer
+        '409':
+          description: 既にいいね済み
+
+  /articles/{id}/favorite:
+    post:
+      tags:
+        - Articles
+      summary: 記事をお気に入りに追加
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: お気に入り追加成功
+        '401':
+          description: 認証が必要
+        '409':
+          description: 既にお気に入り済み
+
+  /articles/{id}/view:
+    post:
+      tags:
+        - Articles
+      summary: 記事閲覧数カウント
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 閲覧数更新成功
+
+  # 管理画面API
+  /admin/articles:
+    get:
+      tags:
+        - Admin - Articles
+      summary: 管理者用記事一覧取得
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, published, draft, scheduled]
+            default: all
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: 記事一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  articles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ArticleAdmin'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          description: 認証が必要
+
+    post:
+      tags:
+        - Admin - Articles
+      summary: 記事作成
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArticleCreate'
+      responses:
+        '201':
+          description: 記事作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '400':
+          description: バリデーションエラー
+        '401':
+          description: 認証が必要
+
+  /admin/articles/{id}:
+    get:
+      tags:
+        - Admin - Articles
+      summary: 管理者用記事詳細取得
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 記事詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticleAdmin'
+        '401':
+          description: 認証が必要
+        '404':
+          description: 記事が見つからない
+
+    put:
+      tags:
+        - Admin - Articles
+      summary: 記事更新
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArticleUpdate'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '400':
+          description: バリデーションエラー
+        '401':
+          description: 認証が必要
+        '404':
+          description: 記事が見つからない
+
+    delete:
+      tags:
+        - Admin - Articles
+      summary: 記事削除
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          description: 認証が必要
+        '404':
+          description: 記事が見つからない
+
+  /admin/articles/{id}/publish:
+    post:
+      tags:
+        - Admin - Articles
+      summary: 記事公開
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                publishedAt:
+                  type: string
+                  format: date-time
+                  description: 公開日時（未指定の場合は即時公開）
+      responses:
+        '200':
+          description: 公開成功
+        '401':
+          description: 認証が必要
+        '404':
+          description: 記事が見つからない
+
+  /admin/articles/{id}/unpublish:
+    post:
+      tags:
+        - Admin - Articles
+      summary: 記事非公開
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 非公開成功
+        '401':
+          description: 認証が必要
+        '404':
+          description: 記事が見つからない
+
+  /admin/articles/{id}/preview:
+    get:
+      tags:
+        - Admin - Articles
+      summary: 記事プレビュー
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: プレビュー用HTML
+          content:
+            text/html:
+              schema:
+                type: string
+        '401':
+          description: 認証が必要
+        '404':
+          description: 記事が見つからない
+
+  # タグ関連
+  /tags:
+    get:
+      tags:
+        - Tags
+      summary: タグ一覧取得
+      parameters:
+        - name: popular
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: 人気タグのみ取得
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: タグ一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+
+  /admin/tags:
+    post:
+      tags:
+        - Admin - Tags
+      summary: タグ作成
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                color:
+                  type: string
+                  description: タグの色（HEXコード）
+      responses:
+        '201':
+          description: タグ作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          description: バリデーションエラー
+        '401':
+          description: 認証が必要
+        '409':
+          description: タグ名が重複
+
+  # カテゴリ関連（追加機能）
+  /categories:
+    get:
+      tags:
+        - Categories
+      summary: カテゴリ一覧取得
+      responses:
+        '200':
+          description: カテゴリ一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+
+  /admin/categories:
+    post:
+      tags:
+        - Admin - Categories
+      summary: カテゴリ作成
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                icon:
+                  type: string
+      responses:
+        '201':
+          description: カテゴリ作成成功
+
+  # アイコン関連
+  /icons:
+    get:
+      tags:
+        - Icons
+      summary: アイコン一覧取得
+      responses:
+        '200':
+          description: アイコン一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Icon'
+
+  /admin/icons:
+    post:
+      tags:
+        - Admin - Icons
+      summary: アイコンアップロード
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - name
+              properties:
+                file:
+                  type: string
+                  format: binary
+                name:
+                  type: string
+      responses:
+        '201':
+          description: アップロード成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Icon'
+        '400':
+          description: ファイル形式が不正
+        '401':
+          description: 認証が必要
+
+  # コメント機能（追加機能）
+  /articles/{id}/comments:
+    get:
+      tags:
+        - Comments
+      summary: 記事のコメント一覧取得
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: コメント一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      tags:
+        - Comments
+      summary: コメント投稿
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                parentId:
+                  type: integer
+                  description: 返信先コメントID
+      responses:
+        '201':
+          description: コメント投稿成功
+        '401':
+          description: 認証が必要
+
+  # ユーザーのお気に入り記事（追加機能）
+  /user/favorites:
+    get:
+      tags:
+        - User
+      summary: お気に入り記事一覧取得
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: お気に入り記事一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  articles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ArticleSummary'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          description: 認証が必要
+
+  # RSS Feed（追加機能）
+  /feed/rss:
+    get:
+      tags:
+        - Feed
+      summary: RSS Feed取得
+      responses:
+        '200':
+          description: RSS Feed
+          content:
+            application/rss+xml:
+              schema:
+                type: string
+
+  # 統計情報（追加機能）
+  /admin/analytics:
+    get:
+      tags:
+        - Admin - Analytics
+      summary: サイト統計情報取得
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [week, month, year]
+            default: month
+      responses:
+        '200':
+          description: 統計情報
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Analytics'
+        '401':
+          description: 認証が必要
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        githubId:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        avatarUrl:
+          type: string
+        bio:
+          type: string
+        website:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        modifiedAt:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        token:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+
+    Article:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        body:
+          type: string
+        bodyHtml:
+          type: string
+          description: マークダウンをHTMLに変換した内容
+        excerpt:
+          type: string
+          description: 記事の抜粋
+        like:
+          type: integer
+        views:
+          type: integer
+        published:
+          type: boolean
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        category:
+          $ref: '#/components/schemas/Category'
+        author:
+          $ref: '#/components/schemas/User'
+        icon:
+          $ref: '#/components/schemas/Icon'
+        publishedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        modifiedAt:
+          type: string
+          format: date-time
+        readingTime:
+          type: integer
+          description: 推定読書時間（分）
+
+    ArticleSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        excerpt:
+          type: string
+        like:
+          type: integer
+        views:
+          type: integer
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        category:
+          $ref: '#/components/schemas/Category'
+        author:
+          $ref: '#/components/schemas/User'
+        icon:
+          $ref: '#/components/schemas/Icon'
+        publishedAt:
+          type: string
+          format: date-time
+        readingTime:
+          type: integer
+
+    ArticleAdmin:
+      allOf:
+        - $ref: '#/components/schemas/Article'
+        - type: object
+          properties:
+            status:
+              type: string
+              enum: [draft, published, scheduled]
+            scheduledAt:
+              type: string
+              format: date-time
+
+    ArticleCreate:
+      type: object
+      required:
+        - title
+        - body
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        body:
+          type: string
+        tags:
+          type: array
+          items:
+            type: integer
+          description: タグIDの配列
+        categoryId:
+          type: integer
+        iconId:
+          type: integer
+        published:
+          type: boolean
+          default: false
+        publishedAt:
+          type: string
+          format: date-time
+
+    ArticleUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        body:
+          type: string
+        tags:
+          type: array
+          items:
+            type: integer
+        categoryId:
+          type: integer
+        iconId:
+          type: integer
+        published:
+          type: boolean
+        publishedAt:
+          type: string
+          format: date-time
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        color:
+          type: string
+        articleCount:
+          type: integer
+          description: このタグが付いた記事数
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+        articleCount:
+          type: integer
+
+    Icon:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        url:
+          type: string
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+        author:
+          $ref: '#/components/schemas/User'
+        parentId:
+          type: integer
+        replies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+        createdAt:
+          type: string
+          format: date-time
+        modifiedAt:
+          type: string
+          format: date-time
+
+    Analytics:
+      type: object
+      properties:
+        totalArticles:
+          type: integer
+        totalViews:
+          type: integer
+        totalLikes:
+          type: integer
+        totalUsers:
+          type: integer
+        popularArticles:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArticleSummary'
+        viewsOverTime:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              views:
+                type: integer
+        topTags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+
+    Pagination:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+        totalPages:
+          type: integer
+        totalItems:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrev:
+          type: boolean
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+  responses:
+    UnauthorizedError:
+      description: 認証が必要です
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFoundError:
+      description: リソースが見つかりません
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ValidationError:
+      description: バリデーションエラー
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
