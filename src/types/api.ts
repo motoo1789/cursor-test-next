@@ -66,3 +66,15 @@ export interface ArticlesParams {
   sortBy?: 'publishedAt' | 'like' | 'views';
   order?: 'asc' | 'desc';
 }
+
+export interface ArticleDetail extends ArticleSummary {
+  content: string;
+  summary: string;
+  techStack: string[];
+}
+
+export interface TableOfContentsItem {
+  id: string;
+  title: string;
+  level: number;
+}

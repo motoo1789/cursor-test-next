@@ -1,4 +1,4 @@
-import { ArticlesResponse, ArticleSummary } from '@/types/api';
+import { ArticlesResponse, ArticleSummary, ArticleDetail } from '@/types/api';
 
 const mockTags = [
   { id: 1, name: 'Next.js', description: 'Next.jsに関する記事', color: '#000000', articleCount: 15 },
@@ -72,5 +72,73 @@ export const getMockArticles = (page: number = 1, limit: number = 9): ArticlesRe
       hasNext: endIndex < allArticles.length,
       hasPrev: page > 1
     }
+  };
+};
+
+export const getMockArticleDetail = (id: number) => {
+  const allArticles = generateMockArticles(68);
+  const article = allArticles.find(a => a.id === id);
+  
+  if (!article) {
+    return null;
+  }
+  
+  return {
+    ...article,
+    summary: `この記事では${article.tags[0].name}を使用した実践的な開発手法について詳しく解説します。初心者から上級者まで役立つ内容を網羅しており、実際のプロジェクトで活用できる知識を提供します。プロジェクトの設計から実装、デプロイまでの一連の流れを通して、実践的なスキルを身につけることができます。また、トラブルシューティングやパフォーマンス最適化についても触れており、実務で直面する可能性のある課題に対する解決策も提供します。`,
+    techStack: article.tags.map(tag => tag.name),
+    content: `# ${article.title}
+
+## はじめに
+
+本記事では、${article.tags[0].name}を使用した現代的な開発手法について詳しく解説していきます。実際のプロジェクトで活用できる実践的な内容を中心に、基礎から応用まで幅広くカバーしています。
+
+## 基本的な概念
+
+${article.tags[0].name}は現代のWeb開発において非常に重要な技術の一つです。その特徴や利点について詳しく見ていきましょう。
+
+### 主な特徴
+
+1. **高いパフォーマンス**: 最適化された実行速度により、ユーザー体験を向上させます
+2. **開発者体験**: 豊富なツールとエコシステムにより、効率的な開発が可能です
+3. **拡張性**: 大規模なアプリケーション開発にも対応できる設計となっています
+
+## 実装例
+
+以下は実際の実装例です：
+
+\`\`\`javascript
+// サンプルコード
+function example() {
+  console.log('Hello, ${article.tags[0].name}!');
+  return true;
+}
+\`\`\`
+
+## パフォーマンス最適化
+
+実際のプロジェクトでは、パフォーマンスの最適化が重要になります。以下のポイントに注意して実装を進めましょう。
+
+### 最適化のポイント
+
+- **バンドルサイズの最適化**: 不要なコードを削減し、必要な機能のみを含める
+- **レンダリングの最適化**: 効率的なレンダリング戦略を採用する
+- **キャッシュ戦略**: 適切なキャッシュ戦略により、パフォーマンスを向上させる
+
+## トラブルシューティング
+
+開発中によく遭遇する問題とその解決策について説明します。
+
+### よくある問題
+
+1. **設定ミス**: 設定ファイルの記述ミスによる動作不良
+2. **依存関係の競合**: パッケージ間の依存関係による問題
+3. **デプロイ時のエラー**: 本番環境特有の問題
+
+## まとめ
+
+${article.tags[0].name}を使用した開発について、基礎から実践的な内容まで幅広く解説しました。これらの知識を活用して、より良いアプリケーション開発に取り組んでください。
+
+今後もこの技術は進化し続けることが予想されるため、継続的な学習と実践が重要です。`
   };
 };
