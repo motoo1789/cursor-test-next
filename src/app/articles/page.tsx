@@ -25,6 +25,7 @@ export default function ArticlesPage() {
       const params = {
         page,
         limit: 9, // 3x3 grid
+        ...(query && query.trim() && { query: query.trim() }),
         ...(tags && tags.length > 0 && { tags }),
         sortBy: 'publishedAt' as const,
         order: 'desc' as const

@@ -9,7 +9,7 @@ export async function getArticles(params: ArticlesParams = {}): Promise<Articles
   if (USE_MOCK_DATA) {
     // モックデータの場合は少し遅延を追加してローディング状態をテスト
     await new Promise(resolve => setTimeout(resolve, 800));
-    return getMockArticles(params.page || 1, params.limit || 9);
+    return getMockArticles(params.page || 1, params.limit || 9, params.query, params.tags);
   }
 
   const searchParams = new URLSearchParams();
@@ -17,6 +17,7 @@ export async function getArticles(params: ArticlesParams = {}): Promise<Articles
   if (params.page) searchParams.set('page', params.page.toString());
   if (params.limit) searchParams.set('limit', params.limit.toString());
   if (params.tags && params.tags.length > 0) searchParams.set('tags', params.tags.join(','));
+  if (params.query) searchParams.set('query', params.query);
   if (params.sortBy) searchParams.set('sortBy', params.sortBy);
   if (params.order) searchParams.set('order', params.order);
 

@@ -33,15 +33,35 @@ const mockIcons = [
 const generateMockArticles = (count: number): ArticleSummary[] => {
   const articles: ArticleSummary[] = [];
   
+  // 多様なタイトルパターンを定義
+  const titlePatterns = [
+    '{tag}を使った実践的な開発手法',
+    '{tag}で始めるモダンフロントエンド開発',
+    '{tag}のパフォーマンス最適化テクニック',
+    '{tag}を活用したWebアプリケーション構築',
+    '{tag}の基礎から応用まで',
+    '{tag}でのコンポーネント設計パターン',
+    '{tag}を使ったAPIの設計と実装',
+    '{tag}でのテスト駆動開発',
+    '{tag}のエラーハンドリング完全ガイド',
+    '{tag}を使った型安全な開発手法',
+    '{tag}によるレスポンシブデザインの実装',
+    '{tag}を活用したSEO対策',
+    '{tag}でのWebパフォーマンス改善',
+    '{tag}を使ったマイクロフロントエンド設計',
+    '{tag}でのCI/CD構築方法'
+  ];
+  
   for (let i = 1; i <= count; i++) {
     const randomTags = mockTags.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 3) + 1);
     const randomCategory = mockCategories[Math.floor(Math.random() * mockCategories.length)];
     const randomAuthor = mockUsers[Math.floor(Math.random() * mockUsers.length)];
     const randomIcon = mockIcons[Math.floor(Math.random() * mockIcons.length)];
+    const randomTitlePattern = titlePatterns[Math.floor(Math.random() * titlePatterns.length)];
     
     articles.push({
       id: i,
-      title: `技術記事のタイトル ${i}: ${randomTags[0].name}を使った開発手法について`,
+      title: randomTitlePattern.replace('{tag}', randomTags[0].name),
       excerpt: `この記事では${randomTags[0].name}を使用した実践的な開発手法について詳しく解説します。初心者から上級者まで役立つ内容を網羅しており、実際のプロジェクトで活用できる知識を提供します。`,
       like: Math.floor(Math.random() * 100) + 1,
       views: Math.floor(Math.random() * 1000) + 50,
@@ -57,8 +77,42 @@ const generateMockArticles = (count: number): ArticleSummary[] => {
   return articles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 };
 
-export const getMockArticles = (page: number = 1, limit: number = 9): ArticlesResponse => {
-  const allArticles = generateMockArticles(68); // Total 68 articles for pagination test
+export const getMockArticles = (
+  page: number = 1, 
+  limit: number = 9, 
+  query?: string, 
+  tagNames?: string[]
+): ArticlesResponse => {
+  let allArticles = generateMockArticles(68); // Total 68 articles for pagination test
+  
+  // タグによるフィルタリング
+  if (tagNames && tagNames.length > 0) {
+    allArticles = allArticles.filter(article => 
+      tagNames.some(tagName => 
+        article.tags.some(tag => tag.name.toLowerCase() === tagName.toLowerCase())
+      )
+    );
+  }
+  
+  // タイトルによる検索
+  if (query && query.trim()) {
+    const searchTerm = query.toLowerCase().trim();
+    allArticles = allArticles.filter(article => {
+      // タイトルに検索語が含まれているかチェック
+      const titleMatch = article.title.toLowerCase().includes(searchTerm);
+      
+      // タグに検索語が含まれているかチェック
+      const tagMatch = article.tags.some(tag => 
+        tag.name.toLowerCase().includes(searchTerm)
+      );
+      
+      // 概要に検索語が含まれているかチェック
+      const excerptMatch = article.excerpt.toLowerCase().includes(searchTerm);
+      
+      return titleMatch || tagMatch || excerptMatch;
+    });
+  }
+  
   const startIndex = (page - 1) * limit;
   const endIndex = startIndex + limit;
   const articles = allArticles.slice(startIndex, endIndex);
