@@ -1,4 +1,4 @@
-import { ArticlesResponse, ArticlesParams } from '@/types/api';
+import { ArticlesResponse, ArticlesParams, ArticleDetail } from '@/types/api';
 import { getMockArticles } from './mockData';
 
 const API_BASE_URL = (typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL) || 'http://localhost:3000/api/v1';
@@ -24,6 +24,27 @@ export async function getArticles(params: ArticlesParams = {}): Promise<Articles
   
   if (!response.ok) {
     throw new Error('Failed to fetch articles');
+  }
+  
+  return response.json();
+}
+
+export async function getArticleDetail(id: number) {
+  // 開発環境でAPIが設定されていない場合はモックデータを使用
+  if (USE_MOCK_DATA) {
+    // モックデータの場合は少し遅延を追加してローディング状態をテスト
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const { getMockArticleDetail } = await import('./mockData');
+    return getMockArticleDetail(id);
+  }
+
+  const response = await fetch(`${API_BASE_URL}/articles/${id}`);
+  
+  if (!response.ok) {
+    if (response.status === 404) {
+      return null;
+    }
+    throw new Error('Failed to fetch article');
   }
   
   return response.json();

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Header from '@/components/Header';
+import ArticleHeader from '@/components/ArticleHeader';
 import SearchSection from '@/components/SearchSection';
 import ArticleCard from '@/components/ArticleCard';
 import Pagination from '@/components/Pagination';
@@ -57,9 +57,13 @@ export default function ArticlesPage() {
   };
 
   return (
-    <div className="bg-gray-50 text-gray-800 min-h-screen">
-      <div className="container mx-auto px-4 py-8">
-        <Header />
+    <div className="bg-gray-100 text-gray-800 min-h-screen">
+      <ArticleHeader />
+      <div className="container mx-auto px-4 py-8 pt-24">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-purple-700 mb-4">技術記事</h1>
+        </div>
+        
         <SearchSection onSearch={handleSearch} />
 
         {/* Loading State */}
