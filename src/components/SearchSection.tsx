@@ -23,22 +23,22 @@ export default function SearchSection({ onSearch }: SearchSectionProps) {
     return () => clearTimeout(timeoutId);
   }, [query, selectedTags, onSearch]);
 
-  const removeTag = (tagToRemove: string) => {
+  const removeTag = useCallback((tagToRemove: string) => {
     setSelectedTags(prev => prev.filter(tag => tag !== tagToRemove));
-  };
+  }, []);
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setQuery('');
     setSelectedTags([]);
-  };
+  }, []);
 
-  const addTag = (tagToAdd: string) => {
+  const addTag = useCallback((tagToAdd: string) => {
     if (tagToAdd && !selectedTags.includes(tagToAdd)) {
       setSelectedTags(prev => [...prev, tagToAdd]);
     }
-  };
+  }, [selectedTags]);
 
-  const handleKeyPress = (e: any, isMainSearch: boolean = false) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>, isMainSearch: boolean = false) => {
     if (e.key === 'Enter') {
       if (isMainSearch) {
         // Enterキーで即座に検索実行（デバウンスをスキップ）
@@ -51,15 +51,19 @@ export default function SearchSection({ onSearch }: SearchSectionProps) {
         }
       }
     }
-  };
+  }, [query, selectedTags, newTag, addTag, onSearch]);
 
-  const handleQueryChange = (newQuery: string) => {
-    setQuery(newQuery);
+  const handleQueryChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(e.target.value);
     // デバウンス機能がuseEffectで処理される
-  };
+  }, []);
 
-  const getTagColor = (tag: string) => {
-    const colors = {
+  const handleCustomTagChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewTag(e.target.value);
+  }, []);
+
+  const getTagColor = useCallback((tag: string): string => {
+    const colors: Record<string, string> = {
       'Next.js': 'bg-black',
       'React': 'bg-blue-500',
       'TypeScript': 'bg-blue-700',
@@ -67,8 +71,8 @@ export default function SearchSection({ onSearch }: SearchSectionProps) {
       'CSS': 'bg-blue-600',
       'Node.js': 'bg-green-600'
     };
-    return colors[tag as keyof typeof colors] || 'bg-gray-500';
-  };
+    return colors[tag] || 'bg-gray-500';
+  }, []);
 
   return (
     <div className="grid grid-cols-1 gap-6 mb-10">
@@ -81,8 +85,8 @@ export default function SearchSection({ onSearch }: SearchSectionProps) {
               placeholder="記事のタイトル、タグ、内容で検索..."
               type="text"
               value={query}
-              onChange={(e) => handleQueryChange(e.target.value)}
-              onKeyPress={(e) => handleKeyPress(e, true)}
+              onChange={handleQueryChange}
+              onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => handleKeyPress(e, true)}
             />
             {query && (
               <button
@@ -154,8 +158,8 @@ export default function SearchSection({ onSearch }: SearchSectionProps) {
               placeholder="カスタムタグを入力してEnterで追加"
               type="text"
               value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
-              onKeyPress={(e) => handleKeyPress(e)}
+              onChange={handleCustomTagChange}
+              onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => handleKeyPress(e)}
             />
             {newTag && (
               <button
