@@ -1,15 +1,23 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import ArticleCreateHeader from '@/components/ArticleCreateHeader'
-import ArticleCreateForm from '@/components/ArticleCreateForm'
-import MarkdownEditor from '@/components/MarkdownEditor'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import ArticleCreateHeader from "@/components/ArticleCreateHeader";
+import ArticleCreateForm from "@/components/ArticleCreateForm";
+import MarkdownEditor from "@/components/MarkdownEditor";
 
 export default function ArticleCreatePage() {
-  const [title, setTitle] = useState('')
-  const [selectedTag, setSelectedTag] = useState('')
-  const [selectedIcon, setSelectedIcon] = useState('')
-  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false)
+  const router = useRouter();
+  const [title, setTitle] = useState("");
+  const [selectedTags, setSelectedTags] = useState<number[]>([]);
+  const [selectedIcon, setSelectedIcon] = useState<number | null>(null);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [publishDate, setPublishDate] = useState("2025/04/12");
+  const [publishTime, setPublishTime] = useState("19:00");
+  const [isPublic, setIsPublic] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [dateError, setDateError] = useState("");
+  const [timeError, setTimeError] = useState("");
   const [markdown, setMarkdown] = useState(`# サンプル記事のタイトル
 
 ## はじめに
@@ -22,22 +30,172 @@ export default function ArticleCreatePage() {
 **太字のテキスト**や*斜体のテキスト*、\`コードブロック\`などが使用できます。
 
 ### まとめ
-記事の結論をここに記述します。`)
+記事の結論をここに記述します。`);
+
+  // 日付の形式をバリデーションする関数
+  const validateDate = (dateStr: string): boolean => {
+    const dateRegex = /^\d{4}\/\d{2}\/\d{2}$/;
+    if (!dateRegex.test(dateStr)) {
+      setDateError(
+        "日付は YYYY/MM/DD 形式で入力してください（例：2025/04/12）"
+      );
+      return false;
+    }
+
+    const [year, month, day] = dateStr.split("/").map(Number);
+    const date = new Date(year, month - 1, day);
+
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day
+    ) {
+      setDateError("正しい日付を入力してください");
+      return false;
+    }
+
+    setDateError("");
+    return true;
+  };
+
+  // 時刻の形式をバリデーションする関数
+  const validateTime = (timeStr: string): boolean => {
+    const timeRegex = /^\d{2}:\d{2}$/;
+    if (!timeRegex.test(timeStr)) {
+      setTimeError("時刻は HH:MM 形式で入力してください（例：19:00）");
+      return false;
+    }
+
+    const [hour, minute] = timeStr.split(":").map(Number);
+
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+      setTimeError("正しい時刻を入力してください（00:00〜23:59）");
+      return false;
+    }
+
+    setTimeError("");
+    return true;
+  };
+
+  // 日付と時刻を結合してISOStringに変換する関数
+  const createPublishDateTime = (dateStr: string, timeStr: string): string => {
+    const [year, month, day] = dateStr.split("/").map(Number);
+    const [hour, minute] = timeStr.split(":").map(Number);
+    const date = new Date(year, month - 1, day, hour, minute);
+    return date.toISOString();
+  };
+
+  const saveArticle = async (published: boolean) => {
+    if (
+      !title.trim() ||
+      !markdown.trim() ||
+      !selectedIcon ||
+      selectedTags.length === 0
+    ) {
+      alert("タイトル、本文、アイコン、タグをすべて入力してください");
+      return;
+    }
+
+    // 公開時のみ日付時刻のバリデーションを実行
+    if (published) {
+      const isDateValid = validateDate(publishDate);
+      const isTimeValid = validateTime(publishTime);
+
+      if (!isDateValid || !isTimeValid) {
+        return; // エラーがある場合は処理を中断
+      }
+    }
+
+    setIsSaving(true);
+    try {
+      const publishedAt = published
+        ? createPublishDateTime(publishDate, publishTime)
+        : new Date().toISOString();
+
+      const response = await fetch("/api/articles", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          body: markdown,
+          authorId: 1, // テストユーザーのID
+          iconId: selectedIcon,
+          tagIds: selectedTags,
+          published: published && isPublic,
+          publishedAt: publishedAt,
+        }),
+      });
+
+      if (response.ok) {
+        const createdArticle = await response.json();
+        alert(published ? "記事が公開されました！" : "下書きが保存されました");
+        router.push("/articles");
+      } else {
+        const error = await response.json();
+        alert(`エラーが発生しました: ${error.error}`);
+      }
+    } catch (error) {
+      console.error("記事保存エラー:", error);
+      alert("記事の保存に失敗しました");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleDraftSave = () => {
-    console.log('下書き保存', { title, selectedTag, selectedIcon, markdown })
-    // TODO: 下書き保存のAPIを呼び出す
-    alert('下書きが保存されました')
-  }
+    saveArticle(false);
+  };
 
   const handlePublishSettings = () => {
-    console.log('公開設定へ', { title, selectedTag, selectedIcon, markdown })
-    setIsPublishModalOpen(true)
-  }
+    if (
+      !title.trim() ||
+      !markdown.trim() ||
+      !selectedIcon ||
+      selectedTags.length === 0
+    ) {
+      alert(
+        "タイトル、本文、アイコン、タグをすべて入力してから公開設定を行ってください"
+      );
+      return;
+    }
+    setIsPublishModalOpen(true);
+  };
+
+  const handlePublish = () => {
+    const isDateValid = validateDate(publishDate);
+    const isTimeValid = validateTime(publishTime);
+
+    if (!isDateValid || !isTimeValid) {
+      return; // エラーがある場合はポップアップを閉じない
+    }
+
+    setIsPublishModalOpen(false);
+    saveArticle(true);
+  };
 
   const handleClosePublishModal = () => {
-    setIsPublishModalOpen(false)
-  }
+    setIsPublishModalOpen(false);
+    setDateError("");
+    setTimeError("");
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPublishDate(value);
+    if (dateError) {
+      validateDate(value);
+    }
+  };
+
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPublishTime(value);
+    if (timeError) {
+      validateTime(value);
+    }
+  };
 
   return (
     <div className="bg-gray-100 min-h-screen">
@@ -46,108 +204,156 @@ export default function ArticleCreatePage() {
           <h1 className="text-2xl font-bold text-gray-800 mb-2">記事作成</h1>
           <p className="text-gray-600">新しい記事を作成します</p>
         </div>
-        
-        <ArticleCreateHeader 
+
+        <ArticleCreateHeader
           onDraftSave={handleDraftSave}
           onPublishSettings={handlePublishSettings}
+          isSaving={isSaving}
         />
-        
+
         <main>
-          <ArticleCreateForm 
+          <ArticleCreateForm
             title={title}
             setTitle={setTitle}
-            selectedTag={selectedTag}
-            setSelectedTag={setSelectedTag}
+            selectedTags={selectedTags}
+            setSelectedTags={setSelectedTags}
             selectedIcon={selectedIcon}
             setSelectedIcon={setSelectedIcon}
           />
-          
-          <MarkdownEditor 
-            markdown={markdown}
-            setMarkdown={setMarkdown}
-          />
+
+          <MarkdownEditor markdown={markdown} setMarkdown={setMarkdown} />
         </main>
-        
+
         {/* 公開設定ポップアップ */}
         {isPublishModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md mx-4">
               <div className="flex items-center justify-between mb-8">
-                <button 
+                <button
                   onClick={handleClosePublishModal}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <span className="material-icons text-3xl">close</span>
                 </button>
-                <h1 className="text-2xl font-bold text-[#0f1111]">公開情報の設定</h1>
+                <h1 className="text-2xl font-bold text-[#0f1111]">
+                  公開情報の設定
+                </h1>
                 <div className="w-8"></div>
               </div>
-              
+
               <div className="mb-8">
-                <h2 className="text-lg font-semibold text-[#0f1111] mb-4">公開日を入力してください</h2>
+                <h2 className="text-lg font-semibold text-[#0f1111] mb-4">
+                  公開日を入力してください
+                </h2>
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-500 mb-1" htmlFor="publish-date">日付</label>
-                  <input 
-                    className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-[#0f1111]" 
-                    id="publish-date" 
-                    type="text" 
-                    defaultValue="2025/04/12"
+                  <label
+                    className="block text-sm font-medium text-gray-500 mb-1"
+                    htmlFor="publish-date"
+                  >
+                    日付
+                  </label>
+                  <input
+                    className={`w-full px-4 py-3 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-[#0f1111] ${
+                      dateError ? "border-red-500" : "border-gray-300"
+                    }`}
+                    id="publish-date"
+                    type="text"
+                    value={publishDate}
+                    onChange={handleDateChange}
+                    placeholder="例：2025/04/12"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Supporting text</p>
+                  {dateError ? (
+                    <p className="text-red-500 text-sm mt-1">{dateError}</p>
+                  ) : (
+                    <p className="text-xs text-gray-500 mt-1">
+                      YYYY/MM/DD 形式で入力してください
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1" htmlFor="publish-time">時間</label>
-                  <input 
-                    className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-[#0f1111]" 
-                    id="publish-time" 
-                    type="text" 
-                    defaultValue="19:00"
+                  <label
+                    className="block text-sm font-medium text-gray-500 mb-1"
+                    htmlFor="publish-time"
+                  >
+                    時間
+                  </label>
+                  <input
+                    className={`w-full px-4 py-3 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-[#0f1111] ${
+                      timeError ? "border-red-500" : "border-gray-300"
+                    }`}
+                    id="publish-time"
+                    type="text"
+                    value={publishTime}
+                    onChange={handleTimeChange}
+                    placeholder="例：19:00"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Supporting text</p>
+                  {timeError ? (
+                    <p className="text-red-500 text-sm mt-1">{timeError}</p>
+                  ) : (
+                    <p className="text-xs text-gray-500 mt-1">
+                      HH:MM 形式で入力してください
+                    </p>
+                  )}
                 </div>
               </div>
-              
+
               <div className="mb-8">
-                <h2 className="text-lg font-semibold text-[#0f1111] mb-4">公開 / 非公開の設定</h2>
+                <h2 className="text-lg font-semibold text-[#0f1111] mb-4">
+                  公開 / 非公開の設定
+                </h2>
                 <div className="space-y-4">
                   <div className="flex items-center">
-                    <input 
-                      defaultChecked 
-                      className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500" 
-                      id="publish-public" 
-                      name="publish-status" 
+                    <input
+                      checked={isPublic}
+                      onChange={() => setIsPublic(true)}
+                      className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      id="publish-public"
+                      name="publish-status"
                       type="radio"
                     />
                     <div className="ml-3 text-sm">
-                      <label className="font-medium text-[#0f1111]" htmlFor="publish-public">公開</label>
+                      <label
+                        className="font-medium text-[#0f1111]"
+                        htmlFor="publish-public"
+                      >
+                        公開
+                      </label>
                       <p className="text-gray-500">記事が閲覧可能な状態です</p>
                     </div>
                   </div>
                   <div className="flex items-center">
-                    <input 
-                      className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500" 
-                      id="publish-private" 
-                      name="publish-status" 
+                    <input
+                      checked={!isPublic}
+                      onChange={() => setIsPublic(false)}
+                      className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      id="publish-private"
+                      name="publish-status"
                       type="radio"
                     />
                     <div className="ml-3 text-sm">
-                      <label className="font-medium text-[#0f1111]" htmlFor="publish-private">非公開</label>
+                      <label
+                        className="font-medium text-[#0f1111]"
+                        htmlFor="publish-private"
+                      >
+                        非公開
+                      </label>
                       <p className="text-gray-500">記事は閲覧されません</p>
                     </div>
                   </div>
                 </div>
               </div>
-              
-              <button 
-                onClick={handleClosePublishModal}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out"
+
+              <button
+                onClick={handlePublish}
+                disabled={isSaving}
+                className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out"
               >
-                設定
+                {isSaving ? "公開中..." : "記事を公開"}
               </button>
             </div>
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
