@@ -63,6 +63,7 @@ export interface ArticlesParams {
   page?: number;
   limit?: number;
   tags?: string[];
+  query?: string;
   sortBy?: 'publishedAt' | 'like' | 'views';
   order?: 'asc' | 'desc';
 }
