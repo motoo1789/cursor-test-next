@@ -1,4 +1,4 @@
-import { ArticleDetail } from '@/types/api';
+import { ArticleDetail } from "@/types/api";
 
 interface ArticleContentProps {
   article: ArticleDetail;
@@ -6,47 +6,105 @@ interface ArticleContentProps {
 
 // Simple markdown to HTML converter
 const markdownToHtml = (markdown: string): string => {
+  if (!markdown) return "";
+
   const generateId = (title: string): string => {
     return title
       .toLowerCase()
-      .replace(/[^\w\s\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/g, '') // 日本語文字も含める
-      .replace(/\s+/g, '-');
+      .replace(/[^\w\s\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/g, "") // 日本語文字も含める
+      .replace(/\s+/g, "-");
   };
 
-  return markdown
-    // Headers with IDs
-    .replace(/^### (.+)$/gm, (match, title) => {
-      const id = `content-${generateId(title)}`;
-      return `<h3 id="${id}" class="text-xl font-semibold text-gray-700 mt-6 mb-3">${title}</h3>`;
-    })
-    .replace(/^## (.+)$/gm, (match, title) => {
-      const id = `content-${generateId(title)}`;
-      return `<h2 id="${id}" class="text-2xl font-semibold text-gray-700 mt-8 mb-4 border-b-2 border-purple-500 pb-2">${title}</h2>`;
-    })
-    .replace(/^# (.+)$/gm, '<h1 class="text-3xl font-bold text-gray-800 mb-6">$1</h1>')
-    // Bold and italic
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
-    // Code blocks
-    .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto my-4"><code class="text-sm">$2</code></pre>')
-    // Inline code
-    .replace(/`(.+?)`/g, '<code class="bg-gray-100 px-2 py-1 rounded text-sm">$1</code>')
-    // Lists
-    .replace(/^- (.+)$/gm, '<li class="ml-4 mb-1">$1</li>')
-    .replace(/^(\d+)\. (.+)$/gm, '<li class="ml-4 mb-1">$2</li>')
-    // Paragraphs
-    .replace(/\n\n/g, '</p><p class="mb-4">')
-    // Line breaks
-    .replace(/\n/g, '<br />');
+  return (
+    markdown
+      // Headers with IDs
+      .replace(/^### (.+)$/gm, (match, title) => {
+        const id = `content-${generateId(title)}`;
+        return `<h3 id="${id}" class="text-xl font-semibold text-gray-700 mt-6 mb-3">${title}</h3>`;
+      })
+      .replace(/^## (.+)$/gm, (match, title) => {
+        const id = `content-${generateId(title)}`;
+        return `<h2 id="${id}" class="text-2xl font-semibold text-gray-700 mt-8 mb-4 border-b-2 border-purple-500 pb-2">${title}</h2>`;
+      })
+      .replace(
+        /^# (.+)$/gm,
+        '<h1 class="text-3xl font-bold text-gray-800 mb-6">$1</h1>'
+      )
+      // Bold and italic
+      .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
+      // Code blocks
+      .replace(
+        /```(\w+)?\n([\s\S]*?)```/g,
+        '<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto my-4"><code class="text-sm">$2</code></pre>'
+      )
+      // Inline code
+      .replace(
+        /`(.+?)`/g,
+        '<code class="bg-gray-100 px-2 py-1 rounded text-sm">$1</code>'
+      )
+      // Lists
+      .replace(/^- (.+)$/gm, '<li class="ml-4 mb-1">$1</li>')
+      .replace(/^(\d+)\. (.+)$/gm, '<li class="ml-4 mb-1">$2</li>')
+      // Paragraphs
+      .replace(/\n\n/g, '</p><p class="mb-4">')
+      // Line breaks
+      .replace(/\n/g, "<br />")
+  );
 };
 
 export default function ArticleContent({ article }: ArticleContentProps) {
+  // デバッグログを追加
+  console.log("ArticleContent received article:", article);
+
+  if (!article) {
+    return (
+      <div className="w-full md:w-3/4">
+        <div className="text-center py-8">
+          <p className="text-gray-600">記事データが見つかりません。</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full md:w-3/4">
       {/* 記事タイトル */}
       <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-8">
-        {article.title}
+        {article.title || "無題"}
       </h1>
+
+      {/* 記事メタ情報 */}
+      <div className="mb-8 p-4 bg-gray-50 rounded-lg">
+        <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+          <span className="flex items-center">
+            <span className="material-icons text-sm mr-1">person</span>
+            {article.author?.name || "不明"}
+          </span>
+          <span className="flex items-center">
+            <span className="material-icons text-sm mr-1">schedule</span>
+            {article.readingTime || 0}分
+          </span>
+          <span className="flex items-center">
+            <span className="material-icons text-sm mr-1">calendar_today</span>
+            {new Date(article.publishedAt).toLocaleDateString("ja-JP")}
+          </span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-500">タグ:</span>
+          <div className="flex flex-wrap gap-1">
+            {article.tags?.map((tag) => (
+              <span
+                key={tag.id}
+                className="px-2 py-1 text-xs rounded-full text-white"
+                style={{ backgroundColor: tag.color || "#3B82F6" }}
+              >
+                {tag.name}
+              </span>
+            )) || <span className="text-sm text-gray-500">なし</span>}
+          </div>
+        </div>
+      </div>
 
       {/* 概要セクション */}
       <section className="mb-10" id="summary">
@@ -54,7 +112,7 @@ export default function ArticleContent({ article }: ArticleContentProps) {
           概要
         </h2>
         <p className="text-gray-600 leading-relaxed">
-          {article.summary}
+          {article.summary || article.excerpt || "概要はありません。"}
         </p>
       </section>
 
@@ -77,12 +135,29 @@ export default function ArticleContent({ article }: ArticleContentProps) {
         <h2 className="text-2xl font-semibold text-gray-700 mb-4 border-b-2 border-purple-500 pb-2">
           本文
         </h2>
-        <div 
+        <div
           className="text-gray-600 leading-relaxed"
-          dangerouslySetInnerHTML={{ 
-            __html: `<p class="mb-4">${markdownToHtml(article.content)}</p>` 
+          dangerouslySetInnerHTML={{
+            __html: `<p class="mb-4">${markdownToHtml(
+              article.content || ""
+            )}</p>`,
           }}
         />
+      </section>
+
+      {/* 統計情報 */}
+      <section className="mb-10 p-4 bg-gray-50 rounded-lg">
+        <h3 className="text-lg font-semibold text-gray-700 mb-3">統計情報</h3>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="flex items-center">
+            <span className="material-icons text-sm mr-2">favorite</span>
+            いいね: {article.like || 0}
+          </div>
+          <div className="flex items-center">
+            <span className="material-icons text-sm mr-2">visibility</span>
+            閲覧数: {article.views || 0}
+          </div>
+        </div>
       </section>
     </div>
   );
