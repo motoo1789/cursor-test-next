@@ -1,6 +1,6 @@
 import { ArticlesResponse, ArticleSummary, ArticleDetail } from '@/types/api';
 
-const mockTags = [
+export const mockTags = [
   { id: 1, name: 'Next.js', description: 'Next.jsに関する記事', color: '#000000', articleCount: 15 },
   { id: 2, name: 'React', description: 'Reactに関する記事', color: '#61DAFB', articleCount: 25 },
   { id: 3, name: 'TypeScript', description: 'TypeScriptに関する記事', color: '#3178C6', articleCount: 20 },
@@ -21,7 +21,7 @@ const mockUsers = [
   { id: 3, githubId: 'developer3', name: '山田次郎', email: 'yamada@example.com', avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=yamada', bio: 'バックエンドエンジニア', website: 'https://yamada.dev', createdAt: '2023-01-01T00:00:00Z', modifiedAt: '2023-01-01T00:00:00Z' }
 ];
 
-const mockIcons = [
+export const mockIcons = [
   { id: 1, name: 'React Logo', url: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/react.svg' },
   { id: 2, name: 'Next.js Logo', url: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/nextdotjs.svg' },
   { id: 3, name: 'TypeScript Logo', url: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/typescript.svg' },
