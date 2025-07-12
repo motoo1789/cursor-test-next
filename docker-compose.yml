@@ -1,0 +1,15 @@
+version: "3"
+
+services:
+  db:
+    build:
+      context: .
+      dockerfile: docker/db/Dockerfile
+    tty: true
+    container_name: cursor-test-articles-db
+    ports:
+      - 5432:5432
+    volumes:
+      - db-store:/var/lib/postgresql/data
+volumes:
+  db-store:
