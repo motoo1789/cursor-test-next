@@ -15,7 +15,7 @@ export default function ArticleDetailPage() {
   const [article, setArticle] = useState<ArticleDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isLiked, setIsLiked] = useState(false);
+  const [currentLikes, setCurrentLikes] = useState(0);
 
   // 目次を生成する関数
   const generateTableOfContents = (content: string): TableOfContentsItem[] => {
@@ -77,6 +77,7 @@ export default function ArticleDetailPage() {
 
       console.log("Article loaded successfully:", response.title);
       setArticle(response);
+      setCurrentLikes(response.like || 0);
     } catch (err) {
       console.error("Error fetching article:", err);
       setError("記事の取得に失敗しました。");
@@ -91,9 +92,21 @@ export default function ArticleDetailPage() {
     }
   }, [params.id]);
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    // TODO: APIコールでいいね状態を更新
+  // いいね数変更時のハンドラー
+  const handleLikeChange = (likes: number, isLiked: boolean) => {
+    setCurrentLikes(likes);
+    // 記事オブジェクトのlike数も更新
+    if (article) {
+      setArticle({
+        ...article,
+        like: likes,
+      });
+    }
+    console.log(
+      `いいね数が更新されました: ${likes} (いいね状態: ${
+        isLiked ? "済み" : "未"
+      })`
+    );
   };
 
   const handleShare = () => {
@@ -148,12 +161,13 @@ export default function ArticleDetailPage() {
       <div className="container mx-auto px-4 md:px-6 py-8 pt-24">
         <div className="bg-white rounded-lg shadow-lg p-6 md:p-10">
           <div className="flex flex-col md:flex-row gap-8">
-            <ArticleContent article={article} />
+            <ArticleContent article={article} currentLikes={currentLikes} />
             <ArticleSidebar
               tableOfContents={tableOfContents}
-              onLike={handleLike}
               onShare={handleShare}
-              isLiked={isLiked}
+              articleId={article.id}
+              initialLikes={currentLikes}
+              onLikeChange={handleLikeChange}
             />
           </div>
         </div>
