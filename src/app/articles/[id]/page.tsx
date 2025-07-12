@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { ArticleDetail, TableOfContentsItem } from '@/types/api';
-import { getArticleDetail } from '@/lib/api';
-import ArticleHeader from '@/components/ArticleHeader';
-import ArticleContent from '@/components/ArticleContent';
-import ArticleSidebar from '@/components/ArticleSidebar';
-import ScrollToTopButton from '@/components/ScrollToTopButton';
-import Footer from '@/components/Footer';
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { ArticleDetail, TableOfContentsItem } from "@/types/api";
+import { getArticleDetail } from "@/lib/api";
+import ArticleHeader from "@/components/ArticleHeader";
+import ArticleContent from "@/components/ArticleContent";
+import ArticleSidebar from "@/components/ArticleSidebar";
+import ScrollToTopButton from "@/components/ScrollToTopButton";
+import Footer from "@/components/Footer";
 
 export default function ArticleDetailPage() {
   const params = useParams();
@@ -25,9 +25,9 @@ export default function ArticleDetailPage() {
 
     // デフォルトの目次項目を追加
     toc.push(
-      { id: 'summary', title: '概要', level: 2 },
-      { id: 'tech-stack', title: '技術スタック', level: 2 },
-      { id: 'main-content', title: '本文', level: 2 }
+      { id: "summary", title: "概要", level: 2 },
+      { id: "tech-stack", title: "技術スタック", level: 2 },
+      { id: "main-content", title: "本文", level: 2 }
     );
 
     // Markdownから見出しを抽出
@@ -36,15 +36,15 @@ export default function ArticleDetailPage() {
       const title = match[2].trim();
       const id = title
         .toLowerCase()
-        .replace(/[^\w\s\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/g, '') // 日本語文字も含める
-        .replace(/\s+/g, '-');
-      
+        .replace(/[^\w\s\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/g, "") // 日本語文字も含める
+        .replace(/\s+/g, "-");
+
       // main-content セクション内の見出しとして追加
       if (level >= 2) {
         toc.push({
           id: `content-${id}`,
           title,
-          level: level + 1 // レベルを調整
+          level: level + 1, // レベルを調整
         });
       }
     }
@@ -56,19 +56,30 @@ export default function ArticleDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const id = parseInt(params.id as string);
-      const response = await getArticleDetail(id);
-      
-      if (!response) {
-        setError('記事が見つかりませんでした。');
+      console.log("Fetching article with ID:", id);
+
+      if (isNaN(id)) {
+        console.error("Invalid article ID:", params.id);
+        setError("無効な記事IDです。");
         return;
       }
-      
+
+      const response = await getArticleDetail(id);
+      console.log("API Response:", response);
+
+      if (!response) {
+        console.error("No article found for ID:", id);
+        setError("記事が見つかりませんでした。");
+        return;
+      }
+
+      console.log("Article loaded successfully:", response.title);
       setArticle(response);
     } catch (err) {
-      setError('記事の取得に失敗しました。');
-      console.error(err);
+      console.error("Error fetching article:", err);
+      setError("記事の取得に失敗しました。");
     } finally {
       setLoading(false);
     }
@@ -95,7 +106,7 @@ export default function ArticleDetailPage() {
     } else {
       // フォールバック: URLをクリップボードにコピー
       navigator.clipboard.writeText(window.location.href);
-      alert('URLをクリップボードにコピーしました');
+      alert("URLをクリップボードにコピーしました");
     }
   };
 
@@ -106,6 +117,7 @@ export default function ArticleDetailPage() {
         <div className="container mx-auto px-4 md:px-6 py-8 pt-24">
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            <p className="ml-4 text-gray-600">記事を読み込み中...</p>
           </div>
         </div>
       </div>
@@ -120,7 +132,7 @@ export default function ArticleDetailPage() {
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
             <div className="flex items-center">
               <span className="material-icons mr-2">error</span>
-              {error || '記事が見つかりませんでした。'}
+              {error || "記事が見つかりませんでした。"}
             </div>
           </div>
         </div>
@@ -137,7 +149,7 @@ export default function ArticleDetailPage() {
         <div className="bg-white rounded-lg shadow-lg p-6 md:p-10">
           <div className="flex flex-col md:flex-row gap-8">
             <ArticleContent article={article} />
-            <ArticleSidebar 
+            <ArticleSidebar
               tableOfContents={tableOfContents}
               onLike={handleLike}
               onShare={handleShare}

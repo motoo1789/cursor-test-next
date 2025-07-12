@@ -3,23 +3,22 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// 記事を作成する関数
-async function createArticle(articleData: {
-  title: string;
-  body: string;
-  authorId: number;
-  iconId: number;
-  tagIds: number[];
-  published: boolean;
-  publishedAt: string;
-}) {
+// 記事作成
+export async function createArticle(request: NextRequest) {
   try {
     const { title, body, authorId, iconId, tagIds, published, publishedAt } =
-      articleData;
+      await request.json();
 
-    if (!title || !body || !authorId || !iconId) {
+    if (
+      !title ||
+      !body ||
+      !authorId ||
+      !iconId ||
+      !tagIds ||
+      tagIds.length === 0
+    ) {
       return NextResponse.json(
-        { error: "title, body, authorId, and iconId are required" },
+        { error: "Title, body, authorId, iconId, and tagIds are required" },
         { status: 400 }
       );
     }
@@ -31,9 +30,9 @@ async function createArticle(articleData: {
         authorId,
         iconId,
         published,
-        publishedAt: new Date(publishedAt),
+        publishedAt: publishedAt ? new Date(publishedAt) : new Date(),
         tags: {
-          connect: tagIds.map((id) => ({ id })),
+          connect: tagIds.map((tagId: number) => ({ id: tagId })),
         },
       },
       include: {
@@ -44,18 +43,17 @@ async function createArticle(articleData: {
     });
 
     return NextResponse.json(article, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error creating article:", error);
-
     return NextResponse.json(
-      { error: "Failed to create article" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
 
-// 記事一覧を取得する関数
-async function getAllArticles() {
+// 記事一覧取得
+export async function getAllArticles() {
   try {
     const articles = await prisma.article.findMany({
       include: {
@@ -64,26 +62,24 @@ async function getAllArticles() {
         icon: true,
       },
       orderBy: {
-        createdAt: "desc",
+        publishedAt: "desc",
       },
     });
+
     return NextResponse.json(articles);
   } catch (error) {
     console.error("Error fetching articles:", error);
     return NextResponse.json(
-      { error: "Failed to fetch articles" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
 
-// Next.js App Router用のPOSTハンドラー
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  return createArticle(body);
+  return createArticle(request);
 }
 
-// Next.js App Router用のGETハンドラー
 export async function GET() {
   return getAllArticles();
 }
