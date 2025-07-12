@@ -33,12 +33,9 @@ function calculateReadingTime(body: string): number {
   return Math.max(1, Math.ceil(wordCount / wordsPerMinute));
 }
 
-// ランダムな統計値を生成する関数
-function generateRandomStats() {
-  return {
-    like: Math.floor(Math.random() * 50) + 1,
-    views: Math.floor(Math.random() * 500) + 10,
-  };
+// ランダムなビュー数を生成する関数（いいね数は削除）
+function generateRandomViews() {
+  return Math.floor(Math.random() * 500) + 10;
 }
 
 // デフォルトカテゴリを生成する関数
@@ -81,7 +78,8 @@ export async function getArticles(
       id: article.id,
       title: article.title,
       excerpt: generateExcerpt(article.body),
-      ...generateRandomStats(),
+      like: article.like, // データベースから取得したいいね数を使用
+      views: generateRandomViews(), // ビュー数のみランダム
       tags: article.tags.map((tag: any) => ({
         id: tag.id,
         name: tag.name,
@@ -196,7 +194,8 @@ export async function getArticleDetail(id: number) {
       id: dbArticle.id,
       title: dbArticle.title,
       excerpt: generateExcerpt(dbArticle.body),
-      ...generateRandomStats(),
+      like: dbArticle.like, // データベースから取得したいいね数を使用
+      views: generateRandomViews(), // ビュー数のみランダム
       tags: dbArticle.tags.map((tag: any) => ({
         id: tag.id,
         name: tag.name,

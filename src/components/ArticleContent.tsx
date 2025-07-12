@@ -2,6 +2,7 @@ import { ArticleDetail } from "@/types/api";
 
 interface ArticleContentProps {
   article: ArticleDetail;
+  currentLikes?: number; // リアルタイムで更新されるいいね数
 }
 
 // Simple markdown to HTML converter
@@ -53,7 +54,10 @@ const markdownToHtml = (markdown: string): string => {
   );
 };
 
-export default function ArticleContent({ article }: ArticleContentProps) {
+export default function ArticleContent({
+  article,
+  currentLikes,
+}: ArticleContentProps) {
   // デバッグログを追加
   console.log("ArticleContent received article:", article);
 
@@ -66,6 +70,10 @@ export default function ArticleContent({ article }: ArticleContentProps) {
       </div>
     );
   }
+
+  // リアルタイムのいいね数を使用（未設定の場合は記事の初期値を使用）
+  const displayLikes =
+    currentLikes !== undefined ? currentLikes : article.like || 0;
 
   return (
     <div className="w-full md:w-3/4">
@@ -136,26 +144,43 @@ export default function ArticleContent({ article }: ArticleContentProps) {
           本文
         </h2>
         <div
-          className="text-gray-600 leading-relaxed"
+          className="text-gray-600 leading-relaxed prose prose-lg max-w-none"
           dangerouslySetInnerHTML={{
-            __html: `<p class="mb-4">${markdownToHtml(
+            __html: `<div class="mb-4">${markdownToHtml(
               article.content || ""
-            )}</p>`,
+            )}</div>`,
           }}
         />
       </section>
 
       {/* 統計情報 */}
-      <section className="mb-10 p-4 bg-gray-50 rounded-lg">
-        <h3 className="text-lg font-semibold text-gray-700 mb-3">統計情報</h3>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="flex items-center">
-            <span className="material-icons text-sm mr-2">favorite</span>
-            いいね: {article.like || 0}
+      <section className="mb-10 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
+        <h3 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+          <span className="material-icons mr-2 text-blue-600">analytics</span>
+          記事の統計
+        </h3>
+        <div className="grid grid-cols-2 gap-6">
+          <div className="flex items-center p-3 bg-white rounded-lg shadow-sm">
+            <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mr-3">
+              <span className="material-icons text-red-500">favorite</span>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">いいね</p>
+              <p className="text-2xl font-bold text-gray-800 transition-all duration-300">
+                {displayLikes}
+              </p>
+            </div>
           </div>
-          <div className="flex items-center">
-            <span className="material-icons text-sm mr-2">visibility</span>
-            閲覧数: {article.views || 0}
+          <div className="flex items-center p-3 bg-white rounded-lg shadow-sm">
+            <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mr-3">
+              <span className="material-icons text-blue-500">visibility</span>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">閲覧数</p>
+              <p className="text-2xl font-bold text-gray-800">
+                {article.views || 0}
+              </p>
+            </div>
           </div>
         </div>
       </section>
