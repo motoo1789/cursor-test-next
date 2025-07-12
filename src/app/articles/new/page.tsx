@@ -9,6 +9,7 @@ export default function ArticleCreatePage() {
   const [title, setTitle] = useState('')
   const [selectedTag, setSelectedTag] = useState('')
   const [selectedIcon, setSelectedIcon] = useState('')
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false)
   const [markdown, setMarkdown] = useState(`# サンプル記事のタイトル
 
 ## はじめに
@@ -31,8 +32,11 @@ export default function ArticleCreatePage() {
 
   const handlePublishSettings = () => {
     console.log('公開設定へ', { title, selectedTag, selectedIcon, markdown })
-    // TODO: 公開設定ページへ遷移
-    alert('公開設定ページに遷移します')
+    setIsPublishModalOpen(true)
+  }
+
+  const handleClosePublishModal = () => {
+    setIsPublishModalOpen(false)
   }
 
   return (
@@ -63,6 +67,86 @@ export default function ArticleCreatePage() {
             setMarkdown={setMarkdown}
           />
         </main>
+        
+        {/* 公開設定ポップアップ */}
+        {isPublishModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md mx-4">
+              <div className="flex items-center justify-between mb-8">
+                <button 
+                  onClick={handleClosePublishModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <span className="material-icons text-3xl">close</span>
+                </button>
+                <h1 className="text-2xl font-bold text-[#0f1111]">公開情報の設定</h1>
+                <div className="w-8"></div>
+              </div>
+              
+              <div className="mb-8">
+                <h2 className="text-lg font-semibold text-[#0f1111] mb-4">公開日を入力してください</h2>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-500 mb-1" htmlFor="publish-date">日付</label>
+                  <input 
+                    className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-[#0f1111]" 
+                    id="publish-date" 
+                    type="text" 
+                    defaultValue="2025/04/12"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Supporting text</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1" htmlFor="publish-time">時間</label>
+                  <input 
+                    className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-[#0f1111]" 
+                    id="publish-time" 
+                    type="text" 
+                    defaultValue="19:00"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Supporting text</p>
+                </div>
+              </div>
+              
+              <div className="mb-8">
+                <h2 className="text-lg font-semibold text-[#0f1111] mb-4">公開 / 非公開の設定</h2>
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <input 
+                      defaultChecked 
+                      className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500" 
+                      id="publish-public" 
+                      name="publish-status" 
+                      type="radio"
+                    />
+                    <div className="ml-3 text-sm">
+                      <label className="font-medium text-[#0f1111]" htmlFor="publish-public">公開</label>
+                      <p className="text-gray-500">記事が閲覧可能な状態です</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <input 
+                      className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500" 
+                      id="publish-private" 
+                      name="publish-status" 
+                      type="radio"
+                    />
+                    <div className="ml-3 text-sm">
+                      <label className="font-medium text-[#0f1111]" htmlFor="publish-private">非公開</label>
+                      <p className="text-gray-500">記事は閲覧されません</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <button 
+                onClick={handleClosePublishModal}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out"
+              >
+                設定
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
