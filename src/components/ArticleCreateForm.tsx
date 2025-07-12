@@ -1,4 +1,5 @@
 import React from 'react'
+import { mockTags, mockIcons } from '@/lib/mockData'
 
 interface ArticleCreateFormProps {
   title: string
@@ -17,8 +18,6 @@ export default function ArticleCreateForm({
   selectedIcon,
   setSelectedIcon
 }: ArticleCreateFormProps) {
-  const tags = ['技術', 'デザイン', 'ビジネス', 'その他']
-  const icons = ['記事', '質問', 'イベント', 'アイデア']
 
   return (
     <div className="mb-8">
@@ -27,7 +26,7 @@ export default function ArticleCreateForm({
           type="text"
           value={title}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
-          className="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+          className="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg text-[#0f1111]"
           placeholder="タイトル"
         />
       </div>
@@ -37,12 +36,12 @@ export default function ArticleCreateForm({
           <select
             value={selectedTag}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedTag(e.target.value)}
-            className="w-full p-4 border border-gray-300 rounded-lg shadow-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
+            className="w-full p-4 border border-gray-300 rounded-lg shadow-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-[#0f1111]"
           >
             <option value="">タグを選択</option>
-            {tags.map((tag) => (
-              <option key={tag} value={tag}>
-                {tag}
+            {mockTags.map((tag) => (
+              <option key={tag.id} value={tag.name}>
+                {tag.name}
               </option>
             ))}
           </select>
@@ -55,12 +54,12 @@ export default function ArticleCreateForm({
           <select
             value={selectedIcon}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedIcon(e.target.value)}
-            className="w-full p-4 border border-gray-300 rounded-lg shadow-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
+            className="w-full p-4 border border-gray-300 rounded-lg shadow-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-[#0f1111]"
           >
             <option value="">アイコンを選択</option>
-            {icons.map((icon) => (
-              <option key={icon} value={icon}>
-                {icon}
+            {mockIcons.map((icon) => (
+              <option key={icon.id} value={icon.name}>
+                {icon.name}
               </option>
             ))}
           </select>

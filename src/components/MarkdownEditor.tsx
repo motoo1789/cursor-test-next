@@ -31,19 +31,19 @@ export default function MarkdownEditor({ markdown, setMarkdown }: MarkdownEditor
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">記事マークダウン</h2>
+        <h2 className="text-xl font-semibold text-[#0f1111] mb-4">記事マークダウン</h2>
         <textarea
           value={markdown}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMarkdown(e.target.value)}
-          className="w-full h-96 p-4 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full h-96 p-4 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-[#0f1111]"
           placeholder="Markdownで記事を記述してください..."
         />
       </div>
       
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">プレビュー</h2>
+        <h2 className="text-xl font-semibold text-[#0f1111] mb-4">プレビュー</h2>
         <div 
-          className="w-full h-96 p-4 border border-gray-300 rounded-md bg-gray-50 overflow-y-auto prose prose-sm max-w-none"
+          className="w-full h-96 p-4 border border-gray-300 rounded-md bg-gray-50 overflow-y-auto prose prose-sm max-w-none text-[#0f1111]"
           dangerouslySetInnerHTML={{ __html: previewContent }}
         />
       </div>
