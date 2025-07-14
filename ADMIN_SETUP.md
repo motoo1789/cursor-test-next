@@ -23,7 +23,6 @@
 4. **設定ファイル**
    - `.env.example` - 環境変数の設定例
    - `.env.local` - 開発環境用環境変数
-   - `dev.db` - SQLiteデータベース（開発用）
 
 ### 機能
 
@@ -63,28 +62,47 @@
 
 ## 設定方法
 
-### 1. 環境変数の設定
+### 1. データベースの準備
 
-`.env.local`ファイルが既に作成されています：
+PostgreSQLデータベースが必要です。以下のいずれかの方法で準備してください：
+
+**方法1: Dockerを使用する場合**
+```bash
+docker run --name postgres-db -e POSTGRES_PASSWORD=password -e POSTGRES_DB=article_db -p 5432:5432 -d postgres:15
+```
+
+**方法2: ローカルにPostgreSQLをインストール**
+- PostgreSQLをインストールして起動
+- データベースを作成
+
+### 2. 環境変数の設定
+
+`.env.local`ファイルでデータベース接続情報を設定してください：
 
 ```bash
 # NextAuth設定
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your-secret-key-here-change-this
+
+# データベース設定
+DATABASE_URL="postgresql://username:password@localhost:5432/database_name"
 ```
 
-`NEXTAUTH_SECRET`は本番環境では必ず強力な値に変更してください。
+実際の値に変更してください：
+- `username`: PostgreSQLのユーザー名
+- `password`: PostgreSQLのパスワード
+- `database_name`: 使用するデータベース名
 
-### 2. データベースの初期化
+### 3. データベースマイグレーション
 
-データベースは既に初期化済みです（SQLite）。追加でマイグレーションが必要な場合：
+データベーススキーマを作成します：
 
 ```bash
-npx prisma migrate dev
+npx prisma migrate dev --name init-password-auth
 npx prisma generate
 ```
 
-### 3. 依存関係の確認
+### 4. 依存関係の確認
 
 以下のパッケージがインストール済みです：
 - `next-auth` - 認証
@@ -92,7 +110,7 @@ npx prisma generate
 - `zod` - バリデーション
 - `react-icons` - アイコン
 
-### 4. 開発サーバーの起動
+### 5. 開発サーバーの起動
 
 ```bash
 npm run dev
@@ -100,11 +118,16 @@ npm run dev
 
 ## 使用方法
 
-1. `http://localhost:3000/auth/signin` でログイン画面にアクセス
-2. 「アカウントをお持ちでない方はこちら」をクリックして新規登録
-3. 必要な情報を入力してアカウント作成
-4. 作成したアカウントでログイン
-5. 認証後、自動的に管理画面(`/admin`)にリダイレクト
+### 初回セットアップ後の手順
+
+1. **PostgreSQLデータベースを起動**
+2. **開発サーバーを起動**: `npm run dev`
+3. **ログイン画面にアクセス**: `http://localhost:3000/auth/signin`
+4. **新規登録**:
+   - 「アカウントをお持ちでない方はこちら」をクリック
+   - 必要な情報を入力してアカウント作成
+5. **ログイン**: 作成したアカウントでログイン
+6. **管理画面**: 認証後、自動的に`/admin`にリダイレクト
 
 ## セキュリティ設定
 
@@ -124,9 +147,9 @@ npm run dev
 
 ## データベース構造
 
-```sql
--- ユーザーテーブル
-User {
+```prisma
+// Prismaスキーマ（PostgreSQL）
+model User {
   id         String   @id @default(cuid())
   username   String   @unique
   email      String   @unique
@@ -136,4 +159,27 @@ User {
   createdAt  DateTime @default(now())
   modifiedAt DateTime @default(now())
 }
+
+model Article {
+  id         Int      @id @default(autoincrement())
+  title      String
+  body       String
+  like       Int      @default(0)
+  published  Boolean  @default(false)
+  tags       Tag[]    @relation("ArticleTags")
+  author     User     @relation(fields: [authorId], references: [id])
+  authorId   String   // User.idを参照
+  icon       Icon     @relation(fields: [iconId], references: [id])
+  iconId     Int  
+  publishedAt DateTime
+  createdAt  DateTime @default(now())
+  modifiedAt DateTime @default(now())
+}
+
+// その他のモデル（Tag, Icon等）も既存のまま
 ```
+
+### 重要な変更点
+- **User.id**: `Int` → `String` (cuid()を使用)
+- **Article.authorId**: `Int` → `String` (Userテーブルとの関連)
+- **パスワードフィールド追加**: bcryptでハッシュ化されたパスワードを保存
