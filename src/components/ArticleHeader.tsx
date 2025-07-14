@@ -1,6 +1,11 @@
+'use client';
+
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 
 export default function ArticleHeader() {
+  const { data: session } = useSession();
+
   return (
     <header className="bg-white shadow-md fixed top-0 left-0 right-0 z-50">
       <div className="container mx-auto px-6 py-3 flex justify-between items-center">
@@ -14,6 +19,24 @@ export default function ArticleHeader() {
           >
             記事作成
           </Link>
+          
+          {/* Admin signin/dashboard button */}
+          {session ? (
+            <Link 
+              href="/admin" 
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md mr-4 transition duration-150 ease-in-out"
+            >
+              管理画面
+            </Link>
+          ) : (
+            <Link 
+              href="/auth/signin" 
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md mr-4 transition duration-150 ease-in-out"
+            >
+              管理者ログイン
+            </Link>
+          )}
+          
           <button className="text-gray-600 hover:text-purple-600 focus:outline-none mx-2">
             <span className="material-icons">search</span>
           </button>
