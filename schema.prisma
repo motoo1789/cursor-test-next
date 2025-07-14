@@ -22,7 +22,7 @@ model Article  {
   published Boolean   @default(false)
   tags      Tag[]     @relation("ArticleTags")
   author    User      @relation(fields: [authorId], references: [id])
-  authorId  Int
+  authorId  String
   icon Icon  @relation(fields: [iconId], references: [id])
   iconId Int  
   publishedAt  DateTime
@@ -45,11 +45,12 @@ model Tag {
 }
 
 model User {
-  id        Int       @id @unique @default(autoincrement())
-  githubId  String    @unique
-  name      String    @unique
-  email     String    @unique
-  articles  Article[] 
-  createdAt DateTime  @default(now())
-  modifiedAt DateTime @default(now())
+  id         String     @id @default(cuid())
+  username   String     @unique
+  email      String     @unique
+  password   String
+  name       String?
+  articles   Article[]
+  createdAt  DateTime   @default(now())
+  modifiedAt DateTime   @default(now())
 }
