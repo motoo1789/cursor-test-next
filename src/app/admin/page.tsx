@@ -9,40 +9,18 @@ interface Article {
   id: number;
   title: string;
   published: boolean;
-  tags: string[];
+  tags: { id: number; name: string }[];
   createdAt: string;
   modifiedAt: string;
+  author: { id: string; name: string };
 }
 
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [articles, setArticles] = useState<Article[]>([
-    {
-      id: 1,
-      title: "タイトルタイトルタイトルタイトルタイトルタイトルタイトルタイトル",
-      published: true,
-      tags: ["React", "Next.js", "TypeScript"],
-      createdAt: "2023年10月26日",
-      modifiedAt: "2023年10月26日",
-    },
-    {
-      id: 2,
-      title: "タイトルタイトルタイトルタイトルタイトルタイトルタイトルタイトル",
-      published: false,
-      tags: ["JavaScript", "Node.js"],
-      createdAt: "2023年10月25日",
-      modifiedAt: "2023年10月25日",
-    },
-    {
-      id: 3,
-      title: "これは下書きの記事タイトルです",
-      published: false,
-      tags: ["Draft"],
-      createdAt: "2023年10月20日",
-      modifiedAt: "2023年10月20日",
-    },
-  ]);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -50,23 +28,84 @@ export default function AdminPage() {
     }
   }, [status, router]);
 
+  useEffect(() => {
+    const fetchUserArticles = async () => {
+      if (!session?.user?.id) return;
+
+      try {
+        const response = await fetch("/api/articles/user");
+        if (!response.ok) {
+          throw new Error("記事の取得に失敗しました");
+        }
+        const data = await response.json();
+        setArticles(data);
+      } catch (error) {
+        console.error("Error fetching articles:", error);
+        setError("記事の取得に失敗しました");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserArticles();
+  }, [session?.user?.id]);
+
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/auth/signin" });
   };
 
-  const togglePublished = (articleId: number) => {
-    setArticles(articles.map(article => 
-      article.id === articleId 
-        ? { ...article, published: !article.published }
-        : article
-    ));
+  const togglePublished = async (articleId: number) => {
+    try {
+      const response = await fetch(`/api/articles/${articleId}/toggle-publish`, {
+        method: "PATCH",
+      });
+
+      if (!response.ok) {
+        throw new Error("公開状態の変更に失敗しました");
+      }
+
+      const updatedArticle = await response.json();
+      setArticles(articles.map(article => 
+        article.id === articleId 
+          ? { ...article, published: updatedArticle.published }
+          : article
+      ));
+    } catch (error) {
+      console.error("Error toggling publish status:", error);
+      setError("公開状態の変更に失敗しました");
+    }
   };
 
-  const deleteArticle = (articleId: number) => {
-    setArticles(articles.filter(article => article.id !== articleId));
+  const deleteArticle = async (articleId: number) => {
+    if (!confirm("本当にこの記事を削除しますか？")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/articles/${articleId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("記事の削除に失敗しました");
+      }
+
+      setArticles(articles.filter(article => article.id !== articleId));
+    } catch (error) {
+      console.error("Error deleting article:", error);
+      setError("記事の削除に失敗しました");
+    }
   };
 
-  if (status === "loading") {
+  const handleEditArticle = (articleId: number) => {
+    router.push(`/admin/edit/${articleId}`);
+  };
+
+  const handleCreateArticle = () => {
+    router.push("/articles/new");
+  };
+
+  if (status === "loading" || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -84,7 +123,10 @@ export default function AdminPage() {
         <header className="flex justify-between items-center mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">マイ記事</h1>
           <div className="flex items-center space-x-4">
-            <button className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow-md transition duration-150 ease-in-out flex items-center">
+            <button
+              onClick={handleCreateArticle}
+              className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow-md transition duration-150 ease-in-out flex items-center"
+            >
               <FaPlus className="mr-2" />
               記事作成
             </button>
@@ -109,6 +151,12 @@ export default function AdminPage() {
           </div>
         </header>
 
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            {error}
+          </div>
+        )}
+
         <div className="space-y-6">
           {articles.map((article) => (
             <div
@@ -121,18 +169,16 @@ export default function AdminPage() {
                 <div className="flex-1">
                   <h2 className="text-xl font-semibold text-gray-800 mb-2">{article.title}</h2>
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {article.tags.map((tag, index) => (
+                    {article.tags.map((tag) => (
                       <span
-                        key={index}
+                        key={tag.id}
                         className={`text-xs font-medium px-3 py-1 rounded-full ${
-                          tag === "Draft"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : article.published
+                          article.published
                             ? "bg-sky-100 text-sky-700"
                             : "bg-gray-200 text-gray-700"
                         }`}
                       >
-                        {tag}
+                        {tag.name}
                       </span>
                     ))}
                   </div>
@@ -150,6 +196,7 @@ export default function AdminPage() {
                     )}
                   </button>
                   <button
+                    onClick={() => handleEditArticle(article.id)}
                     className="p-2 hover:bg-gray-100 rounded-full transition duration-150 ease-in-out"
                     title="編集"
                   >
@@ -165,7 +212,7 @@ export default function AdminPage() {
                 </div>
               </div>
               <p className="text-sm text-gray-500">
-                {article.published ? "作成日" : "最終更新"}: {article.modifiedAt}
+                {article.published ? "作成日" : "最終更新"}: {new Date(article.modifiedAt).toLocaleDateString('ja-JP')}
               </p>
             </div>
           ))}
@@ -178,7 +225,10 @@ export default function AdminPage() {
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">記事がありません</h3>
             <p className="text-gray-500 mb-4">最初の記事を作成してみましょう</p>
-            <button className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow-md transition duration-150 ease-in-out flex items-center mx-auto">
+            <button
+              onClick={handleCreateArticle}
+              className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow-md transition duration-150 ease-in-out flex items-center mx-auto"
+            >
               <FaPlus className="mr-2" />
               記事作成
             </button>

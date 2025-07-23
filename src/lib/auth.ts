@@ -58,7 +58,7 @@ export const authOptions: NextAuthOptions = {
             id: user.id,
             username: user.username,
             email: user.email,
-            name: user.name,
+            name: user.name || undefined,
           };
         } catch (error) {
           console.error("認証エラー:", error);

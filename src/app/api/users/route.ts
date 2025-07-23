@@ -19,11 +19,13 @@ async function createUser(userData: {
       );
     }
 
+    // TODO: Fix schema - githubId field doesn't exist in User model
     const user = await prisma.user.create({
       data: {
-        githubId,
+        username: githubId, // using githubId as username for now
         name,
         email,
+        password: "temp-password", // temporary password
       },
     });
 
