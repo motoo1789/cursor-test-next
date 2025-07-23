@@ -106,10 +106,17 @@ export async function getArticles(
       },
       publishedAt: article.publishedAt,
       readingTime: calculateReadingTime(article.body),
+      published: article.published,
     }));
 
     // フィルタリングとソート
     let filteredArticles = articles;
+
+    // 公開されている記事のみをフィルタリング（念のため）
+    filteredArticles = filteredArticles.filter(
+      (article: any) =>
+        article.published && new Date(article.publishedAt) <= new Date()
+    );
 
     // 検索クエリでのフィルタリング
     if (params.query) {
