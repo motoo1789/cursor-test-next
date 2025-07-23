@@ -44,6 +44,7 @@ export interface ArticleSummary {
   icon: Icon;
   publishedAt: string;
   readingTime: number;
+  published: boolean;
 }
 
 export interface Pagination {

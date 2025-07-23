@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import ArticleCreateHeader from "@/components/ArticleCreateHeader";
 import ArticleCreateForm from "@/components/ArticleCreateForm";
 import MarkdownEditor from "@/components/MarkdownEditor";
 
 export default function ArticleCreatePage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [title, setTitle] = useState("");
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
   const [selectedIcon, setSelectedIcon] = useState<number | null>(null);
@@ -31,6 +33,15 @@ export default function ArticleCreatePage() {
 
 ### まとめ
 記事の結論をここに記述します。`);
+
+  // 認証チェック
+  useEffect(() => {
+    if (status === "loading") return; // セッション読み込み中
+    if (status === "unauthenticated") {
+      router.push("/auth/signin");
+      return;
+    }
+  }, [status, router]);
 
   // 日付の形式をバリデーションする関数
   const validateDate = (dateStr: string): boolean => {
@@ -86,13 +97,29 @@ export default function ArticleCreatePage() {
   };
 
   const saveArticle = async (published: boolean) => {
-    if (
-      !title.trim() ||
-      !markdown.trim() ||
-      !selectedIcon ||
-      selectedTags.length === 0
-    ) {
-      alert("タイトル、本文、アイコン、タグをすべて入力してください");
+    if (!session?.user?.id) {
+      alert("ログインが必要です");
+      router.push("/auth/signin");
+      return;
+    }
+
+    if (!title.trim()) {
+      alert("タイトルを入力してください");
+      return;
+    }
+
+    if (!markdown.trim()) {
+      alert("本文を入力してください");
+      return;
+    }
+
+    if (!selectedIcon) {
+      alert("アイコンを選択してください");
+      return;
+    }
+
+    if (selectedTags.length === 0) {
+      alert("タグを少なくとも1つ選択してください");
       return;
     }
 
@@ -112,20 +139,24 @@ export default function ArticleCreatePage() {
         ? createPublishDateTime(publishDate, publishTime)
         : new Date().toISOString();
 
+      const requestData = {
+        title: title.trim(),
+        body: markdown,
+        authorId: session?.user?.id, // ログインユーザーのID
+        iconId: selectedIcon,
+        tagIds: selectedTags,
+        published: published && isPublic,
+        publishedAt: publishedAt,
+      };
+
+      console.log("Sending article data:", requestData);
+
       const response = await fetch("/api/articles", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          title: title.trim(),
-          body: markdown,
-          authorId: 1, // テストユーザーのID
-          iconId: selectedIcon,
-          tagIds: selectedTags,
-          published: published && isPublic,
-          publishedAt: publishedAt,
-        }),
+        body: JSON.stringify(requestData),
       });
 
       if (response.ok) {
@@ -149,17 +180,26 @@ export default function ArticleCreatePage() {
   };
 
   const handlePublishSettings = () => {
-    if (
-      !title.trim() ||
-      !markdown.trim() ||
-      !selectedIcon ||
-      selectedTags.length === 0
-    ) {
-      alert(
-        "タイトル、本文、アイコン、タグをすべて入力してから公開設定を行ってください"
-      );
+    if (!title.trim()) {
+      alert("タイトルを入力してから公開設定を行ってください");
       return;
     }
+
+    if (!markdown.trim()) {
+      alert("本文を入力してから公開設定を行ってください");
+      return;
+    }
+
+    if (!selectedIcon) {
+      alert("アイコンを選択してから公開設定を行ってください");
+      return;
+    }
+
+    if (selectedTags.length === 0) {
+      alert("タグを少なくとも1つ選択してから公開設定を行ってください");
+      return;
+    }
+
     setIsPublishModalOpen(true);
   };
 

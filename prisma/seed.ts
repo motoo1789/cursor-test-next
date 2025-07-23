@@ -133,6 +133,40 @@ TypeScriptはJavaScriptに型システムを追加した言語です。
     },
   });
 
+  // テスト用：非公開記事
+  await prisma.article.create({
+    data: {
+      title: "【非公開】Reactの新機能（下書き）",
+      body: `# Reactの新機能
+
+この記事はまだ下書き状態です。`,
+      authorId: user1.id,
+      iconId: icons[1].id,
+      published: false, // 非公開
+      publishedAt: new Date(),
+      tags: {
+        connect: [{ id: tags[1].id }], // React
+      },
+    },
+  });
+
+  // テスト用：予約投稿記事
+  await prisma.article.create({
+    data: {
+      title: "【予約投稿】Node.jsの最新トレンド",
+      body: `# Node.jsの最新トレンド
+
+この記事は未来の日付で公開予定です。`,
+      authorId: user2.id,
+      iconId: icons[2].id,
+      published: true,
+      publishedAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1日後
+      tags: {
+        connect: [{ id: tags[5].id }], // Node.js
+      },
+    },
+  });
+
   console.log("シードデータの作成が完了しました！");
 }
 
