@@ -10,7 +10,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "db:seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",
@@ -38,6 +39,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
     "tailwindcss": "^4",
+    "tsx": "^4.20.3",
     "typescript": "^5"
   }
 }

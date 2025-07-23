@@ -55,6 +55,12 @@ export async function createArticle(request: NextRequest) {
 // 記事一覧取得
 export async function getAllArticles() {
   try {
+    console.log("Fetching articles from database...");
+    
+    // まずデータベース接続をテスト
+    await prisma.$connect();
+    console.log("Database connected successfully");
+    
     const articles = await prisma.article.findMany({
       include: {
         tags: true,
@@ -66,11 +72,14 @@ export async function getAllArticles() {
       },
     });
 
+    console.log(`Found ${articles.length} articles`);
     return NextResponse.json(articles);
   } catch (error) {
-    console.error("Error fetching articles:", error);
+    console.error("Detailed error fetching articles:", error);
+    console.error("Error message:", error instanceof Error ? error.message : "Unknown error");
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
     );
   }
