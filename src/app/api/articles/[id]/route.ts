@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const prisma = new PrismaClient();
 
@@ -48,6 +50,15 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const resolvedParams = await params;
     const id = parseInt(resolvedParams.id);
 
@@ -55,6 +66,26 @@ export async function PUT(
       return NextResponse.json(
         { error: "Invalid article ID" },
         { status: 400 }
+      );
+    }
+
+    // 記事の所有者チェック
+    const existingArticle = await prisma.article.findUnique({
+      where: { id },
+      select: { authorId: true },
+    });
+
+    if (!existingArticle) {
+      return NextResponse.json(
+        { error: "Article not found" },
+        { status: 404 }
+      );
+    }
+
+    if (existingArticle.authorId !== session.user.id) {
+      return NextResponse.json(
+        { error: "Forbidden: You can only modify your own articles" },
+        { status: 403 }
       );
     }
 
@@ -76,6 +107,7 @@ export async function PUT(
         iconId,
         published,
         publishedAt: publishedAt ? new Date(publishedAt) : undefined,
+        modifiedAt: new Date(),
         tags: {
           set: tagIds.map((tagId: number) => ({ id: tagId })),
         },
@@ -103,6 +135,15 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const resolvedParams = await params;
     const id = parseInt(resolvedParams.id);
 
@@ -110,6 +151,26 @@ export async function DELETE(
       return NextResponse.json(
         { error: "Invalid article ID" },
         { status: 400 }
+      );
+    }
+
+    // 記事の所有者チェック
+    const existingArticle = await prisma.article.findUnique({
+      where: { id },
+      select: { authorId: true },
+    });
+
+    if (!existingArticle) {
+      return NextResponse.json(
+        { error: "Article not found" },
+        { status: 404 }
+      );
+    }
+
+    if (existingArticle.authorId !== session.user.id) {
+      return NextResponse.json(
+        { error: "Forbidden: You can only delete your own articles" },
+        { status: 403 }
       );
     }
 
